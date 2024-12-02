@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement()) // ID del usuario
+  firstName String // Nombre del usuario
+  lastName  String // Apellido del usuario
+  createdAt DateTime @default(now()) // Fecha de creación
+  updatedAt DateTime @updatedAt // Fecha de última actualización
+
+  //Relacion uno a uno con esquema de seguridad del usuario
+  security UserSecurity? @relation(name: "UserToUserSecurity")
+  // Relación con los roles del usuario
+  roles    Role[]        @relation("UserRoles")
+  // Relación de uno a muchos con las sesiones del usuario
+  sessions Session[]
+}
+
+model UserSecurity {
+  id                    Int       @id @default(autoincrement())
+  userId                Int       @unique
+  user                  User      @relation(name: "UserToUserSecurity", fields: [userId], references: [id])
+  password              String // Contraseña cifrada
+  isAccountActive       Boolean   @default(true) // Si la cuenta está activa o no
+  isUserOnline          Boolean   @default(true) // Si el usuario esta online
+  email                 String?   @unique // Correo electrónico del usuario (único)
+  emailIsVerified       Boolean?  @default(false) // Email verificado
+  emailToken            String? // Token de verificación de email
+  emailTokenExpiresAt   DateTime? // Fecha de expiración del token
+  emailResendCount      Int     //Cantidad de intentos de envio de email
+  phoneNumber           String?   @unique // Correo electrónico del usuario (único)
+  phoneNumberIsVerified Boolean?  @default(false) // Teléfono verificado
+  phoneNumberToken      String? // Token de verificación del teléfono
+  phoneNumberExpiresAt  DateTime? // Fecha de expiración del token de teléfono
+  phoneResendCount      Int    //Cantidad de intentos de envio de telefono
+}
+
+// Tabla de roles, para asignar permisos al usuario
+model Role {
+  id    Int    @id @default(autoincrement()) // ID del rol
+  name  String @unique // Nombre del rol (e.g., admin, user)
+  users User[] @relation("UserRoles") // Relación con los usuarios
+}
+
+// Tabla de sesiones, para almacenar tokens de autenticación, etc.
+model Session {
+  id        Int      @id @default(autoincrement()) // ID de la sesión
+  userId    Int // ID del usuario (clave foránea)
+  token     String // Token de la sesión (por ejemplo, JWT)
+  createdAt DateTime @default(now()) // Fecha de creación
+  updatedAt DateTime @updatedAt // Fecha de última actualización
+
+  user User @relation(fields: [userId], references: [id]) // Relación con el modelo User
+}
